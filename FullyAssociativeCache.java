@@ -10,7 +10,7 @@ public class FullyAssociativeCache {
 
         MainMemory(int number_block) {
             this.number_block = number_block;
-            block = new int[1024][number_block];
+            block = new int[100000][number_block];
         }
 
         int[] read(String address) {
@@ -49,6 +49,8 @@ public class FullyAssociativeCache {
         int number_block;
         MainMemory MM;
         ArrayList<Integer> queue; //LRU Queue
+        int hit;
+        int miss;
 
         FullyAssociative(int number_block, int tag, int cache_lines) {
             super(number_block, tag);
@@ -60,7 +62,8 @@ public class FullyAssociativeCache {
                 queue.add(i);
             }
             MM = new MainMemory(number_block);
-
+            hit = 0;
+            miss = 0;
         }
 
         int[] breakAddress(String address) {
@@ -81,7 +84,8 @@ public class FullyAssociativeCache {
                 if (cache[i].tag == tag)
                     index = i;
             if (index == -1) {
-                System.out.println("Read Miss");
+                System.out.print("Read Miss ");
+                miss++;
                 index = queue.get(0);
                 queue.remove(0);
                 queue.add(index);
@@ -93,6 +97,8 @@ public class FullyAssociativeCache {
             } else {
                 queue.remove((Integer) index);
                 queue.add(index);
+                System.out.print("Read Hit ");
+                hit++;
             }
             return cache[index].read(offset);
         }
@@ -108,6 +114,7 @@ public class FullyAssociativeCache {
                     index = i;
             if (index == -1) {//Line Not Present In Cache
                 System.out.println("Write Miss");
+                miss++;
                 index = queue.get(0);
                 //Updating LRU Queue
                 queue.remove(0);
@@ -121,6 +128,8 @@ public class FullyAssociativeCache {
                 //Updating LRU Queue
                 queue.remove((Integer) index);
                 queue.add(index);
+                System.out.println("Write Hit");
+                hit++;
             }
             cache[index].write(data, offset);
             //Write Through
@@ -132,6 +141,7 @@ public class FullyAssociativeCache {
             int ind = 0;
             for (CacheLine cl : cache)
                 System.out.println(ind++ + "\t\t" + cl.tag + "\t\t" + Arrays.toString(cl.block));
+            System.out.println("Hits - " + hit + "\tMiss - " + miss + "\tHit Ratio - " + (1.0 * hit / (hit + miss)));
             System.out.println();
         }
     }
@@ -143,25 +153,26 @@ public class FullyAssociativeCache {
         System.out.println("Enter The Block Size");
         int B = kb.nextInt();
         kb.nextLine();
-        FullyAssociative FA = new FullyAssociative(B, 0, CL);
+        FullyAssociative FA = new FullyAssociative(B, -1, CL);
         System.out.println("Enter Queries");
         outer:
         while (true) {
-            String str = kb.next();
+            String str = kb.nextLine();
             switch (str.toUpperCase().charAt(0)) {
                 case 'E':
                     break outer;
                 case 'R':
-                    FA.read(kb.nextLine());
+                    System.out.println(FA.read(str.substring(str.indexOf(' ') + 1)));
                     break;
                 case 'W':
-                    String addr = kb.next();
-                    FA.write(kb.nextInt(), addr);
+                    String addr = str.substring(str.indexOf(' ') + 1, str.lastIndexOf(' '));
+                    int data = Integer.parseInt(str.substring(str.lastIndexOf(' ') + 1));
+                    FA.write(data, addr);
                     break;
                 case 'T':
-                    String source = kb.next();
-                    String destination = kb.next();
-                    int data = FA.read(source);
+                    String source = str.substring(str.indexOf(' ') + 1, str.lastIndexOf(' '));
+                    String destination = str.substring(str.lastIndexOf(' ') + 1);
+                    data = FA.read(source);
                     FA.write(data, destination);
                     break;
                 case 'P':
@@ -176,4 +187,38 @@ public class FullyAssociativeCache {
         R 00000000000000000000001001010001
         W 00000000000000000000001001010001 44
         R 00000000000000000000001001010001
+ */
+
+/*
+write 00000000000000001010101111111111 2000
+read 00000000000000001010101111111111
+write 00000000000000000000000000000001 1234
+read 00000000000000000000000000000001
+write 00000000000000000000000000000101 1122
+read 00000000000000000000000000000101
+write 00000000000000001010101111111011 500
+read 00000000000000001010101111111011
+read 00000000000000001010101111111111
+write 00000000000000000001001000101000 222
+write 00000000000000000001001000101100 1232
+read 00000000000000000001001000101100
+write 00000000000000000001001000110011 999
+write 00000000000000000001001000110111 1000
+read 00000000000000000001001000110111
+read 00000000000000000001001000110011
+write 00000000000000001001100110011001 300
+write 00000000000000001001100110011101 1200
+read 00000000000000001001100110011101
+read 00000000000000001001100110011001
+write 00000000000000000000000000010000 2323
+read 00000000000000000000000000010000
+write 00000000000000000000000000010100 1212
+read 00000000000000000000000000010100
+write 00000000000000000011001100001000 32
+read 00000000000000000011001100001000
+write 00000000000000000011001100100111 123
+read 00000000000000000011001100100111
+write 00000000000000001111111111111111 5667
+read 00000000000000001010101111111111
+read 00000000000000001111111111111111
  */
