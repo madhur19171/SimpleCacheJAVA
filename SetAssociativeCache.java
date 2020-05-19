@@ -10,7 +10,7 @@ public class SetAssociativeCache {
 
         MainMemory(int number_block) {
             this.number_block = number_block;
-            block = new int[1024][number_block];
+            block = new int[100000][number_block];
         }
 
         int[] read(String address) {
@@ -60,10 +60,10 @@ public class SetAssociativeCache {
 
         int[] breakAddress(String address) {
             int olength = (int) (Math.log(number_block) / Math.log(2));  //3
-            int ilength = (int) Math.ceil(Math.log(length_sets) / Math.log(2));  //4
+            int ilength = (int) Math.ceil(Math.log(number_sets) / Math.log(2));  //4
             int tlength = address.length() - olength - ilength; // 25
             int offset = Integer.parseInt(address.substring(address.length() - olength), 2);
-            int index = Integer.parseInt(address.substring(tlength, address.length() - olength), 2);
+            int index = ilength == 0 ? 0 : Integer.parseInt(address.substring(tlength, address.length() - olength), 2);
             int tag = Integer.parseInt(address.substring(0, tlength), 2);
             return new int[]{tag, index, offset};
         }
@@ -86,10 +86,16 @@ public class SetAssociativeCache {
 
         void print() {
             System.out.println("Set\t\tLine\tTag\t\tData");
+            int hit = 0;
+            int miss = 0;
             for (int i = 0; i < number_sets; i++) {
                 System.out.print(i);
                 sets[i].printFA();
+                hit += sets[i].hit;
+                miss += sets[i].miss;
             }
+            System.out.println("Hits - " + hit + "\tMiss - " + miss + "\tHit Ratio - " + (1.0 * hit / (hit + miss)));
+            System.out.println();
         }
     }
 
@@ -98,6 +104,8 @@ public class SetAssociativeCache {
         int number_block;
         MainMemory MM;
         ArrayList<Integer> queue; //LRU Queue
+        int hit;
+        int miss;
 
         FullyAssociative(int number_block, int tag, int cache_lines) {
             super(number_block, tag);
@@ -109,7 +117,8 @@ public class SetAssociativeCache {
                 queue.add(i);
             }
             MM = new MainMemory(number_block);
-
+            hit = 0;
+            miss = 0;
         }
 
         int readFA(String address, int tag, int offset) {
@@ -119,7 +128,8 @@ public class SetAssociativeCache {
                 if (cache[i].tag == tag)
                     index = i;
             if (index == -1) {
-                System.out.println("Read Miss");
+                System.out.print("Read Miss ");
+                miss++;
                 index = queue.get(0);
                 queue.remove(0);
                 queue.add(index);
@@ -131,6 +141,8 @@ public class SetAssociativeCache {
             } else {
                 queue.remove((Integer) index);
                 queue.add(index);
+                System.out.print("Read Hit ");
+                hit++;
             }
             return cache[index].read(offset);
         }
@@ -143,6 +155,7 @@ public class SetAssociativeCache {
                     index = i;
             if (index == -1) {//Line Not Present In Cache
                 System.out.println("Write Miss");
+                miss++;
                 index = queue.get(0);
                 //Updating LRU Queue
                 queue.remove(0);
@@ -156,6 +169,8 @@ public class SetAssociativeCache {
                 //Updating LRU Queue
                 queue.remove((Integer) index);
                 queue.add(index);
+                System.out.println("Write Hit");
+                hit++;
             }
             cache[index].write(data, offset);
             //Write Through
@@ -179,25 +194,26 @@ public class SetAssociativeCache {
         System.out.println("Enter The Block Size");
         int B = kb.nextInt();
         kb.nextLine();
-        SetAssociative SA = new SetAssociative(CL / AS, AS, B, 0);
+        SetAssociative SA = new SetAssociative(CL / AS, AS, B, -1);
         System.out.println("Enter Queries");
         outer:
         while (true) {
-            String str = kb.next();
+            String str = kb.nextLine();
             switch (str.toUpperCase().charAt(0)) {
                 case 'E':
                     break outer;
                 case 'R':
-                    SA.read(kb.nextLine());
+                    System.out.println(SA.read(str.substring(str.indexOf(' ') + 1)));
                     break;
                 case 'W':
-                    String addr = kb.next();
-                    SA.write(kb.nextInt(), addr);
+                    String addr = str.substring(str.indexOf(' ') + 1, str.lastIndexOf(' '));
+                    int data = Integer.parseInt(str.substring(str.lastIndexOf(' ') + 1));
+                    SA.write(data, addr);
                     break;
                 case 'T':
-                    String source = kb.next();
-                    String destination = kb.next();
-                    int data = SA.read(source);
+                    String source = str.substring(str.indexOf(' ') + 1, str.lastIndexOf(' '));
+                    String destination = str.substring(str.lastIndexOf(' ') + 1);
+                    data = SA.read(source);
                     SA.write(data, destination);
                     break;
                 case 'P':
