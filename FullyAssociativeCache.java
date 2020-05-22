@@ -3,7 +3,17 @@ package COAssignment;
 import java.util.*;
 
 public class FullyAssociativeCache {
-
+    /**
+     * Creating a main memory of size 100000*number_of_blocks*4 bytes.
+     * this memory is word indexed, that is each address can supply a unique word.
+     * The Memory sends out data in blocks of word. The number of words in each block
+     * are determined by the variable number_block.
+     * This function provides two functions viz. Read and Write.
+     * Read returns the entire block from which the appropriate hardware
+     * that requested the data can read the appropriate word from the returned block.
+     * Write function Takes the entire data block as the data to be written and the address
+     * where the content has to be written.
+     */
     static class MainMemory {
         int[][] block;
         int number_block;
@@ -26,6 +36,18 @@ public class FullyAssociativeCache {
         }
     }
 
+    /**
+     * The CacheLine class is the heart of all the caches.
+     * The CacheLine is implemented just like an actual cache
+     * would work on a hardware level.
+     * It consists of a tag and a data block as its attributes/
+     * The tag uniquely Identifies the CacheLine and data stores the data/
+     * It has two functions viz. Read and Write.
+     * The Read function takes the block number to be read as the input.
+     * It returns the data in that location of the block as the output.
+     * The Write function takes the data as its input to be written and the
+     * block number to where it is to be written. It returns nothing.
+     */
     static class CacheLine {
         int[] block;
         int tag;
@@ -44,6 +66,14 @@ public class FullyAssociativeCache {
         }
     }
 
+    /**
+     * The FullyAssociative class mainly brings together different pieces.
+     * It has an array of CacheLines just like a real cache.
+     * Each cache line can be addressed by a unique address to it.
+     * This class initiates a Main Memory and a CacheLine Array.
+     * This class also has an ArrayList that is used to keep the record of LRU line.
+     * It also has two variables viz. hit and miss to count the number of his and misses.
+     */
     static class FullyAssociative extends CacheLine {
         CacheLine[] cache;
         int number_block;
@@ -66,6 +96,17 @@ public class FullyAssociativeCache {
             miss = 0;
         }
 
+        /**
+         * This method is used to break the address into its appropriate components
+         * and return those components.
+         * The address is broken int 2 parts:
+         * Offset: This determines the position of the required word inside the block.
+         * Tag: It is the part of the address which is compared with the Tag of the CacheLine to determine
+         * if the cache line is the one that is required or not.
+         *
+         * @param address This  parameter  is the address which has to be broken
+         * @return int[]
+         */
         int[] breakAddress(String address) {
             int olength = (int) (Math.log(number_block) / Math.log(2));  //3
             int tlength = address.length() - olength; // 29
@@ -74,6 +115,23 @@ public class FullyAssociativeCache {
             return new int[]{tag, offset};
         }
 
+        /**
+         * This function is to read the content at the address in the cache.
+         * There are two possibilities, either the data is in cache or not.
+         * If it is in the cache, the tag matches with the indexed cache line
+         * then the read function of the cache line is called and the value is returned.
+         * Then the LRU queue is updated. The Line that was read is made to go at the top
+         * of the queue.
+         * If the required block is not in the cache, a miss is generated.
+         * The Last member of the LRU queue is popped as it is the least recently used line.
+         * That is pushed at the top of the queue as it is now the most recently used line.
+         * That CacheLine is updated with new tag and data is read from the Main Memory.
+         * The block is read from the main memory and written into the appropriate cache line.
+         * Then the block is again read from the cache. This time a hit occurs.
+         *
+         * @param address This  parameter  is the address which has to be Read
+         * @return int
+         */
         int read(String address) {
             int[] breakAddress = breakAddress(address);
             int tag = breakAddress[0];
@@ -103,6 +161,23 @@ public class FullyAssociativeCache {
             return cache[index].read(offset);
         }
 
+        /**
+         * This function is to Write the content at the address in the cache.
+         * There are two possibilities, either the block is in cache or not.
+         * If it is in the cache, the tag matches with the indexed cache line
+         * then the write function of the cache line is called and the value is written.
+         * Then the LRU queue is updated. The Line that was read is made to go at the top
+         * of the queue.
+         * If the required block is not in the cache, a miss is generated.
+         * The Last member of the LRU queue is popped as it is the least recently used line.
+         * That is pushed at the top of the queue as it is now the most recently used line.
+         * That CacheLine is updated with new tag and data is read from the Main Memory.
+         * The block is read from the main memory and written into the appropriate cache line.
+         * Then the block is again written in the cache. This time a hit occurs.
+         *
+         * @param data Specifies the value to be Written
+         * @param address Specifies the location where to be written
+         */
         void write(int data, String address) {
             int[] breakAddress = breakAddress(address);
             int tag = breakAddress[0];
@@ -122,6 +197,7 @@ public class FullyAssociativeCache {
                 //Bring Data From Main Memory
                 //Write It To Cache
                 cache[index].tag = tag;
+                // Not Necessary
                 cache[index].block = MM.read(address);
                 //Read It.
             } else {
@@ -136,6 +212,9 @@ public class FullyAssociativeCache {
             MM.write(cache[index].block, address);
         }
 
+        /**
+         * Prints the current contents of the cache
+         */
         void print() {
             System.out.println("Line\tTag\t\tData");
             int ind = 0;
@@ -146,6 +225,18 @@ public class FullyAssociativeCache {
         }
     }
 
+    /**
+     * The Main method takes number of Cache Lines to be in the cache
+     * and the number of blocks in each cache lines as the inputs.
+     * Then it takes Queries in the form:
+     * R <Address>
+     * W <Address> <Data>
+     * T <Source Address> <Destination Address>
+     * P is to print the contents of the cache.
+     * E is to exit the queries and stop the execution.
+     *
+     * @param args
+     */
     public static void main(String[] args) {
         Scanner kb = new Scanner(System.in);
         System.out.println("Enter The Number of Cache Lines");
